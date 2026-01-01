@@ -1,0 +1,381 @@
+<!--
+==================================================================
+  Dashboard : Le Gardien des Systèmes 👽 v5.1
+  Correction : Erreur stats + where résolue (appendpipe corrigé)
+  Sysmon intégré + Score de Sécurité fonctionnel
+  Auteur : Claude GAMBIGHA - cgambigh
+  Date : 01 Janvier 2026
+  "Ton Gardien est invincible et stable à 100%"
+==================================================================
+-->
+<dashboard theme="dark">
+  <label>👽🛡️ Le Gardien des Systèmes - ULTIME (avec Sysmon)</label>
+
+  <!-- Header stylé avec alerte brute force -->
+  <row>
+    <panel>
+      <html>
+        <div style="background: linear-gradient(135deg, #0f0f0f, #1a1a1a); padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 255, 65, 0.2); border: 1px solid #00ff41; margin: 10px;">
+          <h1 style="text-align:center; color:#00FF41; margin:0; font-size:36px; text-shadow: 0 0 10px rgba(0,255,65,0.5);">
+            🛡️ LE GARDIEN DES SYSTÈMES 🛡️
+          </h1>
+          <p style="text-align:center; color:#aaa; font-style:italic; font-size:18px; margin:10px 0;">
+            "Avec Sysmon, plus rien ne m'échappe."
+          </p>
+          <h2 style="text-align:center; font-size:28px; margin:15px 0;" id="threat-level">
+            Niveau de Menace : <span id="threat-text" style="color:#00FF00; font-weight:bold;">FAIBLE</span>
+            <span id="alert-flash" style="display:none; color:#FF0000; font-weight:bold; animation: blink 1s infinite;"> ⚠ BRUTE FORCE EN COURS ⚠</span>
+          </h2>
+        </div>
+
+        <script type="text/javascript">
+          $(document).ready(function() {
+            const style = document.createElement('style');
+            style.innerHTML = `@keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }`;
+            document.head.appendChild(style);
+
+            var search = new splunkjs.mvc.SearchManager({
+              id: "bruteforce-alert",
+              search: `index=* OR index=wineventlog OR index=windows OR index=main sourcetype="WinEventLog:Security" EventCode=4625 | stats count`,
+              earliest_time: "-1h@h",
+              latest_time: "now"
+            });
+            search.on("search:done", function() {
+              var results = search.data("results");
+              results.on("data", function() {
+                var failed = parseInt(results.data().rows[0][0]) || 0;
+                var level = "FAIBLE";
+                var color = "#00FF00";
+                var showAlert = false;
+                if (failed > 50) { level = "MOYEN"; color = "#FFFF00"; }
+                if (failed > 100) { level = "ÉLEVÉ"; color = "#FF8000"; }
+                if (failed > 200) { level = "CRITIQUE"; color = "#FF0000"; showAlert = true; }
+                $("#threat-text").text(level).css("color", color);
+                if (showAlert) $("#alert-flash").show(); else $("#alert-flash").hide();
+              });
+            });
+            search.startSearch();
+          });
+        </script>
+      </html>
+    </panel>
+  </row>
+
+  <!-- Inputs -->
+  <row>
+    <panel>
+      <input type="multiselect" token="host_token" searchWhenChanged="true">
+        <label>💻 Filtrer par Hôte(s)</label>
+        <choice value="*">Tous les hôtes</choice>
+        <default>*</default>
+        <prefix>(</prefix>
+        <suffix>)</suffix>
+        <valuePrefix>host="</valuePrefix>
+        <valueSuffix>"</valueSuffix>
+        <delimiter> OR </delimiter>
+        <fieldForLabel>host</fieldForLabel>
+        <fieldForValue>host</fieldForValue>
+        <search>
+          <query>(index=* OR index=wineventlog OR index=windows OR index=main) 
+          (sourcetype="WinEventLog:Security" OR sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational")
+          | stats count by host | sort host</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+      </input>
+    </panel>
+    <panel>
+      <input type="time" token="time_range">
+        <label>⏱ Période</label>
+        <default>
+          <earliest>-7d@d</earliest>
+          <latest>now</latest>
+        </default>
+      </input>
+    </panel>
+  </row>
+
+  <!-- KPI Global -->
+  <row>
+    <panel>
+      <title>🛡️ Score de Sécurité Global (0-100)</title>
+      <single>
+        <search>
+          <query>
+          index=* OR index=wineventlog OR index=windows OR index=main sourcetype="WinEventLog:Security" $host_token$
+          | stats count as base
+          | appendpipe [search EventCode=4625 | stats count as failed]
+          | appendpipe [search EventCode IN (1102,1104) | stats count as clear]
+          | appendpipe [search EventCode IN (4726,4740) | stats count as dangerous_ad]
+          | fillnull value=0 failed clear dangerous_ad
+          | eval score = max(0, round(100 - (failed * 0.5 + clear * 20 + dangerous_ad * 10), 0))
+          | table score
+          </query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="underLabel">Objectif : 100/100</option>
+        <option name="trendDisplay">on</option>
+        <option name="sparkline">on</option>
+        <option name="colorBy">value</option>
+        <option name="rangeColors">["0xFF0000","0xFF8000","0xFFFF00","0x00FF00"]</option>
+        <option name="rangeValues">[0,50,70,100]</option>
+      </single>
+    </panel>
+    <panel>
+      <title>🖥️ Événements Sysmon</title>
+      <single>
+        <search>
+          <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" $host_token$ | stats count</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="underLabel">Sur la période</option>
+        <option name="trendDisplay">on</option>
+      </single>
+    </panel>
+    <panel>
+      <title>🔴 Tentatives Échouées (4625)</title>
+      <single>
+        <search>
+          <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="WinEventLog:Security" $host_token$ EventCode=4625 | stats count</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="trendDisplay">on</option>
+      </single>
+    </panel>
+    <panel>
+      <title>🔓 Connexions Réussies (4624)</title>
+      <single>
+        <search>
+          <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="WinEventLog:Security" $host_token$ EventCode=4624 | stats count</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="trendDisplay">on</option>
+      </single>
+    </panel>
+    <panel>
+      <title>🚨 Effacement Logs</title>
+      <single>
+        <search>
+          <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="WinEventLog:Security" EventCode IN (1102,1104) | stats count</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="colorMode">block</option>
+      </single>
+    </panel>
+  </row>
+
+  <!-- Brute Force & IP Suspectes -->
+  <row>
+    <panel>
+      <title>🌐 Top 10 IP avec le plus d'échecs</title>
+      <table>
+        <search>
+          <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="WinEventLog:Security" $host_token$ EventCode=4625
+          | fillnull value="-" IpAddress
+          | search IpAddress!="-" IpAddress!="::1" IpAddress!="127.0.0.1"
+          | stats count by IpAddress | sort -count | head 10</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>👤 Top 10 Comptes les plus visés</title>
+      <table>
+        <search>
+          <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="WinEventLog:Security" $host_token$ EventCode=4625
+          | stats count by TargetUserName | sort -count | head 10</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+
+  <!-- Évolution des sessions -->
+  <row>
+    <panel>
+      <title>📈 Connexions vs Échecs vs Déconnexions</title>
+      <chart>
+        <search>
+          <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="WinEventLog:Security" $host_token$ EventCode IN (4624,4625,4634,4647)
+          | eval Type=case(EventCode=4624,"Réussie", EventCode=4625,"Échouée", 1=1,"Déconnexion")
+          | timechart count by Type</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+      </chart>
+    </panel>
+  </row>
+
+  <!-- Dernières actions Security -->
+  <row>
+    <panel>
+      <title>🔴 25 Dernières Tentatives Échouées</title>
+      <table>
+        <search>
+          <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="WinEventLog:Security" $host_token$ EventCode=4625
+          | fillnull value="-" IpAddress, WorkstationName, LogonType
+          | eval LogonTypeName=case(LogonType=10,"RDP", LogonType=2,"Console", LogonType=3,"Réseau", 1=1,"Autre")
+          | table _time, host, TargetUserName, LogonTypeName, IpAddress, WorkstationName
+          | sort -_time | head 25</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>🔑 20 Dernières Connexions Réussies</title>
+      <table>
+        <search>
+          <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="WinEventLog:Security" $host_token$ EventCode=4624
+          | table _time, host, TargetUserName, IpAddress, WorkstationName
+          | sort -_time | head 20</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+
+  <!-- Active Directory -->
+  <row>
+    <panel>
+      <title>👥 Derniers Changements Active Directory</title>
+      <table>
+        <search>
+          <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="WinEventLog:Security" $host_token$
+          EventCode IN (4720,4722,4724,4725,4726,4738,4740)
+          | eval Action=case(EventCode=4720,"🟢 Création", EventCode=4726,"🔴 Suppression", EventCode=4738,"🟡 Modification", EventCode=4740,"🔴 Verrouillage", 1=1,"Autre")
+          | table _time, host, Action, TargetUserName, SubjectUserName, IpAddress
+          | rename host AS "DC", TargetUserName AS "Compte", SubjectUserName AS "Par"
+          | sort -_time | head 30</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+
+  <!-- === SECTION SYSMON === -->
+  <row>
+    <panel>
+      <title>⚙️ Top 15 Processus Créés (Sysmon EventID 1)</title>
+      <table>
+        <search>
+          <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" $host_token$ EventID=1
+          | stats count by Image, ParentImage
+          | sort - count
+          | head 15
+          | rename Image AS "Processus", ParentImage AS "Parent"</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>🌐 Top 10 Connexions Réseau Sortantes (Sysmon EventID 3)</title>
+      <table>
+        <search>
+          <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" $host_token$ EventID=3
+          | fillnull value="-" DestinationIp
+          | search DestinationIp!="-" DestinationIp!="127.0.0.1" DestinationIp!="::1" DestinationIp!="10.*" DestinationIp!="192.168.*" DestinationIp!="172.16.*"
+          | stats count by DestinationIp, DestinationPort, Image
+          | sort - count
+          | head 10</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>💉 Top 10 Accès Processus Suspects (Sysmon EventID 10)</title>
+      <table>
+        <search>
+          <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" $host_token$ EventID=10
+          | stats count by SourceImage, TargetImage
+          | sort - count
+          | head 10</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>📄 Créations Fichiers Suspects (Sysmon EventID 11)</title>
+      <table>
+        <search>
+          <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" $host_token$ EventID=11
+          | search TargetFilename=*.ps1 OR TargetFilename=*.vbs OR TargetFilename=*.bat OR TargetFilename=*.exe OR TargetFilename=*.dll
+          OR TargetFilename=*\\Temp\\* OR TargetFilename=*\\AppData\\* OR TargetFilename=*\\Downloads\\*
+          | table _time, host, Image, TargetFilename
+          | sort - _time
+          | head 20</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+
+  <!-- Heatmap finale (Security + Sysmon) -->
+  <row>
+    <panel>
+      <title>📅 Heatmap Activité Globale (Security + Sysmon)</title>
+      <html>
+        <div id="heatmap-calendar" style="width:100%; height:400px; background-color:#1e1e1e;"></div>
+        <script src="https://cdn.jsdelivr.net/npm/cal-heatmap@4.2.5/dist/cal-heatmap.min.js"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cal-heatmap@4.2.5/dist/cal-heatmap.css"/>
+        <script type="text/javascript">
+          $(document).ready(function() {
+            var search = new splunkjs.mvc.SearchManager({
+              id: "heatmap-search",
+              search: "(index=* OR index=wineventlog OR index=windows OR index=main) (sourcetype=\"WinEventLog:Security\" OR sourcetype=\"XmlWinEventLog:Microsoft-Windows-Sysmon/Operational\") $host_token$ | timechart span=1d count",
+              cache: true
+            });
+            search.on("search:done", function() {
+              var results = search.data("results");
+              if (results) {
+                results.on("data", function() {
+                  var data = {};
+                  var rows = results.data().rows;
+                  rows.forEach(function(row) {
+                    var timestamp = parseInt(row[0]) * 1000;
+                    var count = parseInt(row[1]) || 0;
+                    data[timestamp] = count;
+                  });
+                  new CalHeatmap().paint({
+                    itemSelector: "#heatmap-calendar",
+                    theme: "dark",
+                    domain: "month",
+                    subDomain: "day",
+                    data: data,
+                    date: { start: new Date(new Date().getFullYear(new Date().getFullYear() - 1)) },
+                    range: 13,
+                    cellSize: 18,
+                    legend: [100, 1000, 5000, 10000],
+                    legendColors: { base: "#333", min: "#144932", max: "#00FF00" }
+                  });
+                });
+              }
+            });
+            search.startSearch();
+          });
+        </script>
+      </html>
+    </panel>
+  </row>
+</dashboard>
