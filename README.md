@@ -41,20 +41,7 @@ Date : Janvier 2026
 
 Voici à quoi ressemble un dashboard Splunk moderne en dark theme (exemples similaires à "Le Gardien") :
 
-<grok-card data-id="2ffb09" data-type="image_card"  data-arg-size="LARGE" ></grok-card>
-
-
-
-<grok-card data-id="4473b6" data-type="image_card"  data-arg-size="LARGE" ></grok-card>
-
-
-
-<grok-card data-id="b1f7c4" data-type="image_card"  data-arg-size="LARGE" ></grok-card>
-
-
-
-<grok-card data-id="d80128" data-type="image_card"  data-arg-size="LARGE" ></grok-card>
-
+![Vue globale du dashboard](screenshots/gardien_dashboard_overview.mp4)
 
 *généré avec Splunk Dashboard Studio / Classic en dark mode – ton Gardien aura le même style pro et immersif !*
 
