@@ -63,6 +63,17 @@ Certaines recherches (comme la détection brute force ou l’alerte clignotante)
 
 > Ton SI est protégé… mais ton CPU aussi mérite du repos. 😴
 
+## Qualité du code
+
+Analyse SonarQube Community Edition (Janvier 2026) :
+
+**Quality Gate : PASSED** ✅  
+**381 lignes analysées**  
+**Security : 0 issues** (A)  
+**Reliability : 0 issues** (A)  
+**Maintainability : 0 issues** (A)
+
+Le Gardien n’est pas seulement impitoyable avec les intrus… il est aussi propre comme du code audité. 👽
 
 ## Contribution
 Les pull requests sont les bienvenues !  
