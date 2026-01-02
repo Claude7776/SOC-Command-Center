@@ -75,6 +75,7 @@ Analyse SonarQube Community Edition (Janvier 2026) :
 
 Le Gardien n’est pas seulement impitoyable avec les intrus… il est aussi propre comme du code audité. 👽
 
+![Vue globale du dashboard](/screenshots/screeshot_sonar.png)
 ## Contribution
 Les pull requests sont les bienvenues !  
 Si tu ajoutes des détections Sigma, des alertes ou des améliorations visuelles → je merge direct 🔥
