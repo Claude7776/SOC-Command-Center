@@ -45,6 +45,25 @@ Voici à quoi ressemble un dashboard Splunk moderne en dark theme (exemples simi
 
 *généré avec Splunk Dashboard Studio / Classic en dark mode – ton Gardien aura le même style pro et immersif !*
 
+
+## ⚠️ Avertissement : Charge CPU en temps réel
+
+**Attention lors du lancement en mode temps réel (-1h@h ou "Latest") :**
+
+Certaines recherches (comme la détection brute force ou l’alerte clignotante) s’exécutent en continu et peuvent **surcharger le CPU** de ton Splunk Search Head, surtout si :
+- Tu as un volume élevé d’événements Security/Sysmon
+- Le dashboard est ouvert en permanence sur plusieurs onglets/navigateurs
+- Ton indexeur est sous-dimensionné
+
+**Solutions recommandées :**
+- Utilise une période fixe (ex: -24h@h ou -7d@d) pour les tests et l’usage quotidien
+- Rafraîchis manuellement ou configure un auto-refresh modéré (ex: toutes les 5 min via Splunk settings)
+- Pour un usage SOC 24/7 : dédie un Search Head léger ou utilise Splunk Cloud avec auto-scaling
+- Désactive temporairement les panels lourds (ex: heatmap ou tops en temps réel) si besoin
+
+> Ton SI est protégé… mais ton CPU aussi mérite du repos. 😴
+
+
 ## Contribution
 Les pull requests sont les bienvenues !  
 Si tu ajoutes des détections Sigma, des alertes ou des améliorations visuelles → je merge direct 🔥
