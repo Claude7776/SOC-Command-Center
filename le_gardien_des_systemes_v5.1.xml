@@ -9,7 +9,7 @@
 ==================================================================
 -->
 <dashboard theme="dark">
-  <label>👽🛡️ Le Gardien des Systèmes - ULTIME (avec Sysmon)</label>
+  <label>👽 Le Gardien des Systèmes - ULTIME (avec Sysmon)</label>
 
   <!-- Header stylé avec alerte brute force -->
   <row>
@@ -17,7 +17,7 @@
       <html>
         <div style="background: linear-gradient(135deg, #0f0f0f, #1a1a1a); padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 255, 65, 0.2); border: 1px solid #00ff41; margin: 10px;">
           <h1 style="text-align:center; color:#00FF41; margin:0; font-size:36px; text-shadow: 0 0 10px rgba(0,255,65,0.5);">
-            🛡️ LE GARDIEN DES SYSTÈMES 🛡️
+            👽 LE GARDIEN DES SYSTÈMES 👽
           </h1>
           <p style="text-align:center; color:#aaa; font-style:italic; font-size:18px; margin:10px 0;">
             "Avec Sysmon, plus rien ne m'échappe."
