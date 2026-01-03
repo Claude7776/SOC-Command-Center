@@ -1,23 +1,21 @@
-<!--
-==================================================================
-  Dashboard : Le Gardien des Systèmes 👽 v5.1
-  Correction : Erreur stats + where résolue (appendpipe corrigé)
-  Sysmon intégré + Score de Sécurité fonctionnel
-  Auteur : Claude GAMBIGHA - cgambigh
-  Date : 01 Janvier 2026
-  "Ton Gardien est invincible et stable à 100%"
-==================================================================
--->
-<dashboard theme="dark">
-  <label>👽 Le Gardien des Systèmes - ULTIME (avec Sysmon)</label>
-
+<form theme="dark">
+  <label>👽️ Le Gardien des Systèmes - ULTIME (avec Sysmon)</label>
   <!-- Header stylé avec alerte brute force -->
+  <!-- Inputs -->
+  <!-- KPI Global -->
+  <!-- NOUVEAU PANEL : Répartition des Changements AD (ton SPL intégré) -->
+  <!-- Brute Force & IP Suspectes -->
+  <!-- Évolution des sessions -->
+  <!-- Dernières actions Security -->
+  <!-- Section Sysmon -->
+  <!-- Heatmap finale -->
+  <fieldset submitButton="false" autoRun="true"></fieldset>
   <row>
     <panel>
       <html>
         <div style="background: linear-gradient(135deg, #0f0f0f, #1a1a1a); padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 255, 65, 0.2); border: 1px solid #00ff41; margin: 10px;">
           <h1 style="text-align:center; color:#00FF41; margin:0; font-size:36px; text-shadow: 0 0 10px rgba(0,255,65,0.5);">
-            👽 LE GARDIEN DES SYSTÈMES 👽
+            👽️ LE GARDIEN DES SYSTÈMES 👽️
           </h1>
           <p style="text-align:center; color:#aaa; font-style:italic; font-size:18px; margin:10px 0;">
             "Avec Sysmon, plus rien ne m'échappe."
@@ -47,9 +45,9 @@
                 var level = "FAIBLE";
                 var color = "#00FF00";
                 var showAlert = false;
-                if (failed > 50) { level = "MOYEN"; color = "#FFFF00"; }
-                if (failed > 100) { level = "ÉLEVÉ"; color = "#FF8000"; }
-                if (failed > 200) { level = "CRITIQUE"; color = "#FF0000"; showAlert = true; }
+                if (failed &gt; 50) { level = "MOYEN"; color = "#FFFF00"; }
+                if (failed &gt; 100) { level = "ÉLEVÉ"; color = "#FF8000"; }
+                if (failed &gt; 200) { level = "CRITIQUE"; color = "#FF0000"; showAlert = true; }
                 $("#threat-text").text(level).css("color", color);
                 if (showAlert) $("#alert-flash").show(); else $("#alert-flash").hide();
               });
@@ -60,8 +58,6 @@
       </html>
     </panel>
   </row>
-
-  <!-- Inputs -->
   <row>
     <panel>
       <input type="multiselect" token="host_token" searchWhenChanged="true">
@@ -94,11 +90,9 @@
       </input>
     </panel>
   </row>
-
-  <!-- KPI Global -->
   <row>
     <panel>
-      <title>🛡️ Score de Sécurité Global (0-100)</title>
+      <title>⚔️ Score de Sécurité Global (0-100) ⚔️</title>
       <single>
         <search>
           <query>
@@ -132,12 +126,11 @@
           <latest>$time_range.latest$</latest>
         </search>
         <option name="colorMode">block</option>
-        <option name="underLabel">Sur la période</option>
         <option name="trendDisplay">on</option>
       </single>
     </panel>
     <panel>
-      <title>🔴 Tentatives Échouées (4625)</title>
+      <title>🔴 Tentatives Échouées</title>
       <single>
         <search>
           <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="WinEventLog:Security" $host_token$ EventCode=4625 | stats count</query>
@@ -149,7 +142,7 @@
       </single>
     </panel>
     <panel>
-      <title>🔓 Connexions Réussies (4624)</title>
+      <title>🔓 Connexions Réussies</title>
       <single>
         <search>
           <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="WinEventLog:Security" $host_token$ EventCode=4624 | stats count</query>
@@ -160,20 +153,48 @@
         <option name="trendDisplay">on</option>
       </single>
     </panel>
+  </row>
+  <row>
     <panel>
-      <title>🚨 Effacement Logs</title>
-      <single>
+      <title>📊 Répartition des Changements Active Directory</title>
+      <chart>
         <search>
-          <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="WinEventLog:Security" EventCode IN (1102,1104) | stats count</query>
-          <earliest>-24h@h</earliest>
-          <latest>now</latest>
+          <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="WinEventLog:Security" $host_token$
+          EventCode IN (4720,4722,4724,4725,4726,4738,4740)
+          | eval Action = case(
+              EventCode=4720, "Création",
+              EventCode=4722, "Activation",
+              EventCode=4724, "Réinit. MDP",
+              EventCode=4725, "Désactivation",
+              EventCode=4726, "Suppression",
+              EventCode=4738, "Modification",
+              EventCode=4740, "Verrouillage"
+            )
+          | stats count by Action
+          | sort - count</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
         </search>
-        <option name="colorMode">block</option>
-      </single>
+        <option name="charting.chart">pie</option>
+        <option name="charting.legend.placement">right</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>👥 Derniers Changements Active Directory (détail)</title>
+      <table>
+        <search>
+          <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="WinEventLog:Security" $host_token$
+          EventCode IN (4720,4722,4724,4725,4726,4738,4740)
+          | eval Action=case(EventCode=4720,"🟢 Création", EventCode=4726,"🔴 Suppression", EventCode=4738,"🟡 Modification", EventCode=4740,"🔴 Verrouillage", 1=1,"Autre")
+          | table _time, host, Action, TargetUserName, SubjectUserName, IpAddress
+          | rename host AS "DC", TargetUserName AS "Compte", SubjectUserName AS "Par"
+          | sort -_time | head 30</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+      </table>
     </panel>
   </row>
-
-  <!-- Brute Force & IP Suspectes -->
   <row>
     <panel>
       <title>🌐 Top 10 IP avec le plus d'échecs</title>
@@ -200,8 +221,6 @@
       </table>
     </panel>
   </row>
-
-  <!-- Évolution des sessions -->
   <row>
     <panel>
       <title>📈 Connexions vs Échecs vs Déconnexions</title>
@@ -217,8 +236,6 @@
       </chart>
     </panel>
   </row>
-
-  <!-- Dernières actions Security -->
   <row>
     <panel>
       <title>🔴 25 Dernières Tentatives Échouées</title>
@@ -247,27 +264,6 @@
       </table>
     </panel>
   </row>
-
-  <!-- Active Directory -->
-  <row>
-    <panel>
-      <title>👥 Derniers Changements Active Directory</title>
-      <table>
-        <search>
-          <query>index=* OR index=wineventlog OR index=windows OR index=main sourcetype="WinEventLog:Security" $host_token$
-          EventCode IN (4720,4722,4724,4725,4726,4738,4740)
-          | eval Action=case(EventCode=4720,"🟢 Création", EventCode=4726,"🔴 Suppression", EventCode=4738,"🟡 Modification", EventCode=4740,"🔴 Verrouillage", 1=1,"Autre")
-          | table _time, host, Action, TargetUserName, SubjectUserName, IpAddress
-          | rename host AS "DC", TargetUserName AS "Compte", SubjectUserName AS "Par"
-          | sort -_time | head 30</query>
-          <earliest>$time_range.earliest$</earliest>
-          <latest>$time_range.latest$</latest>
-        </search>
-      </table>
-    </panel>
-  </row>
-
-  <!-- === SECTION SYSMON === -->
   <row>
     <panel>
       <title>⚙️ Top 15 Processus Créés (Sysmon EventID 1)</title>
@@ -299,7 +295,6 @@
       </table>
     </panel>
   </row>
-
   <row>
     <panel>
       <title>💉 Top 10 Accès Processus Suspects (Sysmon EventID 10)</title>
@@ -330,14 +325,12 @@
       </table>
     </panel>
   </row>
-
-  <!-- Heatmap finale (Security + Sysmon) -->
   <row>
     <panel>
       <title>📅 Heatmap Activité Globale (Security + Sysmon)</title>
       <html>
-        <div id="heatmap-calendar" style="width:100%; height:400px; background-color:#1e1e1e;"></div>
-        <script src="https://cdn.jsdelivr.net/npm/cal-heatmap@4.2.5/dist/cal-heatmap.min.js"></script>
+        <div id="heatmap-calendar" style="width:100%; height:400px; background-color:#1e1e1e;"/>
+        <script src="https://cdn.jsdelivr.net/npm/cal-heatmap@4.2.5/dist/cal-heatmap.min.js"/>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cal-heatmap@4.2.5/dist/cal-heatmap.css"/>
         <script type="text/javascript">
           $(document).ready(function() {
@@ -378,4 +371,4 @@
       </html>
     </panel>
   </row>
-</dashboard>
+</form>
